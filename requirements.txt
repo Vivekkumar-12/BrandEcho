@@ -1,8 +1,9 @@
 textblob==0.17.1
-tweepy==4.14.0
 python-dotenv==1.0.0
-pandas==2.1.0
+pandas==2.2.3
 nltk==3.8.1
 requests==2.31.0
 flask==2.3.3
-flask-cors==4.0.0 
+flask-cors==4.0.0
+beautifulsoup4==4.12.2
+vercel-wsgi==0.2.5

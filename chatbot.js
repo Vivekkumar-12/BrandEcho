@@ -85,11 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function displayUsageStats() {
         const stats = await getUsageStats();
         if (stats) {
+            const maxReads = stats.max_reads ?? 0;
+            const maxWrites = stats.max_writes ?? 0;
             const usageMessage = 
                 `API Usage Statistics:\n` +
-                `- Remaining reads: ${stats.remaining_reads}/100\n` +
-                `- Remaining writes: ${stats.remaining_writes}/500\n` +
-                `- Next reset: ${new Date(stats.next_reset).toLocaleDateString()}`;
+                `- Remaining reads: ${stats.remaining_reads}/${maxReads}\n` +
+                `- Remaining writes: ${stats.remaining_writes}/${maxWrites}\n` +
+                `- Next reset: ${stats.next_reset ? new Date(stats.next_reset).toLocaleDateString() : 'N/A'}`;
             addMessage(usageMessage);
         }
     }
@@ -150,27 +152,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sampleQuotes = result.sample_quotes || { most_positive: null, most_negative: null };
                     const aiSummary = result.ai_summary || 'AI summary not available';
                     
-                    let response = `Brand Sentiment Analysis for "${brand}":\n\n`;
-                    response += `Overall Sentiment: ${overallSentiment.toFixed(2)} (${sentimentLabel})\n`;
-                    response += `Total Mentions: ${result.total_mentions || 0}\n\n`;
-                    
-                    response += `Sentiment Breakdown:\n`;
-                    response += `- Positive mentions: ${breakdown.positive}\n`;
-                    response += `- Negative mentions: ${breakdown.negative}\n`;
-                    response += `- Neutral mentions: ${breakdown.neutral}\n\n`;
-                    
+                    const lines = [];
+                    lines.push(`Brand: ${brand}`);
+                    lines.push(`Overall: ${sentimentLabel} (${overallSentiment.toFixed(2)})`);
+                    lines.push(`Mentions analyzed: ${result.total_mentions || 0}`);
+
+                    lines.push('Breakdown:');
+                    lines.push(`• Positive: ${breakdown.positive}`);
+                    lines.push(`• Negative: ${breakdown.negative}`);
+                    lines.push(`• Neutral: ${breakdown.neutral}`);
+
                     if (sampleQuotes.most_positive) {
-                        response += `Most Positive Comment:\n"${sampleQuotes.most_positive.substring(0, 200)}${sampleQuotes.most_positive.length > 200 ? '...' : ''}"\n\n`;
+                        const pos = sampleQuotes.most_positive;
+                        lines.push(`Most positive: "${pos.substring(0, 200)}${pos.length > 200 ? '...' : ''}"`);
                     }
-                    
+
                     if (sampleQuotes.most_negative) {
-                        response += `Most Negative Comment:\n"${sampleQuotes.most_negative.substring(0, 200)}${sampleQuotes.most_negative.length > 200 ? '...' : ''}"\n\n`;
+                        const neg = sampleQuotes.most_negative;
+                        lines.push(`Most negative: "${neg.substring(0, 200)}${neg.length > 200 ? '...' : ''}"`);
                     }
-                    
-                    response += `AI-Generated Analysis:\n${aiSummary}\n\n`;
-                    response += `Remaining API calls: ${result.remaining_reads || 0}`;
-                    
-                    addMessage(response);
+
+                    lines.push(`AI summary: ${aiSummary || 'Not available'}`);
+                    lines.push(`Remaining calls this month: ${result.remaining_reads ?? 'N/A'}`);
+
+                    addMessage(lines.join('\n'));
                 }
             } else {
                 addMessage('Sorry, I encountered an error while analyzing the brand. Please try again.');
@@ -180,12 +185,26 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (input.toLowerCase().includes('show usage') || input.toLowerCase().includes('api usage')) {
             await displayUsageStats();
         }
-        // Default response for unrecognized input
+        // Default: treat any other message as text sentiment analysis
         else {
-            addMessage('I can help you analyze text or brand sentiment. Try saying:\n' +
-                      '- "Analyze this text: [your text]"\n' +
-                      '- "Check sentiment for brand: [brand name]"\n' +
-                      '- "Show usage" to see API limits');
+            const result = await analyzeSentiment(input);
+            if (result) {
+                const sentimentScore = result.sentiment_score || 0;
+                const sentiment = sentimentScore > 0.1 ? 'positive' :
+                                sentimentScore < -0.1 ? 'negative' : 'neutral';
+
+                const response = `Sentiment Analysis Results:\n` +
+                               `Overall Sentiment: ${sentiment}\n` +
+                               `Sentiment Score: ${sentimentScore.toFixed(2)}\n` +
+                               `Key Phrases: ${result.key_phrases ? result.key_phrases.join(', ') : 'None found'}\n\n` +
+                               `Tips:\n- To analyze a brand, type "Check sentiment for brand: [brand name]"\n- To view limits, type "Show usage"`;
+                addMessage(response);
+            } else {
+                addMessage('I can help with text or brand sentiment. Try:\n' +
+                          '- "Analyze this text: [your text]"\n' +
+                          '- "Check sentiment for brand: [brand name]"\n' +
+                          '- "Show usage" to see API/limit status');
+            }
         }
     }
 
