@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from vercel_wsgi import handle
+from vercel_python_wsgi import create_app as vercel_app
 
 # Adjust paths so static assets (index.html, chatbot.js, etc.) can be served
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -66,4 +66,4 @@ def get_usage_stats():
         return jsonify({'error': str(exc)}), 500
 
 # Vercel entrypoint
-handler = handle(app)
+handler = vercel_app(app)
