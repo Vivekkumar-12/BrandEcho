@@ -15,7 +15,10 @@ from bs4 import BeautifulSoup
 
 # Create a directory for NLTK data if it doesn't exist
 nltk_data_dir = Path(os.path.expanduser('~/nltk_data'))
-nltk_data_dir.mkdir(parents=True, exist_ok=True)
+try:
+    nltk_data_dir.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 # Set NLTK data path
 nltk.data.path.append(str(nltk_data_dir))
@@ -32,12 +35,11 @@ else:
 REQUIRED_NLTK_PACKAGES = [
     ('tokenizers/punkt', 'punkt'),
     ('corpora/stopwords', 'stopwords'),
-    ('corpora/brown', 'brown'),
-    ('taggers/averaged_perceptron_tagger', 'averaged_perceptron_tagger'),
 ]
 
 
 def _ensure_nltk_packages():
+    """Safely download NLTK packages if missing."""
     for resource_path, package in REQUIRED_NLTK_PACKAGES:
         try:
             nltk.data.find(resource_path)
@@ -45,19 +47,13 @@ def _ensure_nltk_packages():
             try:
                 nltk.download(package, download_dir=str(nltk_data_dir), quiet=True)
             except Exception as exc:
-                print(f"Error downloading NLTK data package {package}: {str(exc)}")
-                print("Continuing without some NLTK data. Some features may not work correctly.")
+                print(f"Warning: Could not download NLTK package {package}: {str(exc)}")
+                # Continue silently; TextBlob fallback will work
 
 
 def _ensure_textblob_corpora():
-    corpus_marker = nltk_data_dir / 'tokenizers' / 'punkt'
-    if corpus_marker.exists():
-        return
-    try:
-        subprocess.run(['python', '-m', 'textblob.download_corpora'], check=True)
-    except Exception as exc:
-        print(f"Error downloading TextBlob corpora: {str(exc)}")
-        print("Continuing without some TextBlob corpora. Some features may not work correctly.")
+    """Skip TextBlob corpora download; we use TextBlob's built-in fallbacks."""
+    pass  # TextBlob works without pre-downloaded corpora
 
 class RateLimit:
     def __init__(self):
@@ -107,9 +103,21 @@ class RateLimit:
 
 class SentimentAnalyzer:
     def __init__(self):
-        load_dotenv()
-        _ensure_nltk_packages()
-        _ensure_textblob_corpora()
+        try:
+            load_dotenv()
+        except Exception:
+            pass
+        
+        try:
+            _ensure_nltk_packages()
+        except Exception:
+            pass
+        
+        try:
+            _ensure_textblob_corpora()
+        except Exception:
+            pass
+        
         self.rate_limit = RateLimit()
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         # Using free APIs: NewsAPI (free tier) for brand mentions
