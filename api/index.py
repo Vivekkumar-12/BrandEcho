@@ -35,6 +35,9 @@ def analyze():
             return jsonify(result), 400
         return jsonify(result)
     except Exception as exc:
+        import traceback
+        error_msg = f"{str(exc)}\n{traceback.format_exc()}"
+        print(f"[ERROR] /analyze: {error_msg}")
         return jsonify({'error': str(exc)}), 500
 
 @app.route('/analyze-brand', methods=['POST'])
@@ -54,6 +57,9 @@ def analyze_brand():
             return jsonify(result), 429 if 'limit' in result.get('error', '').lower() else 400
         return jsonify(result)
     except Exception as exc:
+        import traceback
+        error_msg = f"{str(exc)}\n{traceback.format_exc()}"
+        print(f"[ERROR] /analyze-brand for '{brand}': {error_msg}")
         return jsonify({'error': str(exc)}), 500
 
 @app.route('/usage-stats', methods=['GET'])
@@ -62,4 +68,7 @@ def get_usage_stats():
         stats = analyzer.get_usage_stats()
         return jsonify(stats)
     except Exception as exc:
+        import traceback
+        error_msg = f"{str(exc)}\n{traceback.format_exc()}"
+        print(f"[ERROR] /usage-stats: {error_msg}")
         return jsonify({'error': str(exc)}), 500

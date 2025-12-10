@@ -6,7 +6,13 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize the sentiment analyzer
-analyzer = SentimentAnalyzer()
+try:
+    analyzer = SentimentAnalyzer()
+except Exception as e:
+    print(f"[WARNING] Failed to initialize SentimentAnalyzer: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    analyzer = None
 
 @app.route('/')
 def serve_index():
@@ -18,6 +24,9 @@ def serve_static(path):
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+    if not analyzer:
+        return jsonify({'error': 'Analyzer not initialized'}), 500
+        
     data = request.json
     text = data.get('text', '')
     
@@ -31,10 +40,15 @@ def analyze():
             return jsonify(result), 400
         return jsonify(result)
     except Exception as e:
+        import traceback
+        print(f"[ERROR] /analyze: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/analyze-brand', methods=['POST'])
 def analyze_brand():
+    if not analyzer:
+        return jsonify({'error': 'Analyzer not initialized'}), 500
+        
     data = request.json
     brand = data.get('brand', '')
     days = data.get('days', 7)
@@ -56,14 +70,21 @@ def analyze_brand():
                 return jsonify(result), 400
         return jsonify(result)
     except Exception as e:
+        import traceback
+        print(f"[ERROR] /analyze-brand: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/usage-stats', methods=['GET'])
 def get_usage_stats():
+    if not analyzer:
+        return jsonify({'error': 'Analyzer not initialized'}), 500
+        
     try:
         stats = analyzer.get_usage_stats()
         return jsonify(stats)
     except Exception as e:
+        import traceback
+        print(f"[ERROR] /usage-stats: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
