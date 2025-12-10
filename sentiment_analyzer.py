@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 import pandas as pd
 from textblob import TextBlob
 from dotenv import load_dotenv
@@ -13,12 +14,11 @@ import requests
 from bs4 import BeautifulSoup
 
 # Create a directory for NLTK data if it doesn't exist
-nltk_data_dir = os.path.expanduser('~/nltk_data')
-if not os.path.exists(nltk_data_dir):
-    os.makedirs(nltk_data_dir)
+nltk_data_dir = Path(os.path.expanduser('~/nltk_data'))
+nltk_data_dir.mkdir(parents=True, exist_ok=True)
 
 # Set NLTK data path
-nltk.data.path.append(nltk_data_dir)
+nltk.data.path.append(str(nltk_data_dir))
 
 # Download required NLTK data with SSL verification disabled
 try:
@@ -28,22 +28,36 @@ except AttributeError:
 else:
     ssl._create_default_https_context = _create_unverified_https_context
 
-# Download required NLTK data
-try:
-    nltk.download('punkt', download_dir=nltk_data_dir)
-    nltk.download('stopwords', download_dir=nltk_data_dir)
-    nltk.download('brown', download_dir=nltk_data_dir)
-    nltk.download('averaged_perceptron_tagger', download_dir=nltk_data_dir)
-except Exception as e:
-    print(f"Error downloading NLTK data: {str(e)}")
-    print("Continuing without some NLTK data. Some features may not work correctly.")
+# Minimal resource bootstrap; only download if missing to keep cold starts fast
+REQUIRED_NLTK_PACKAGES = [
+    ('tokenizers/punkt', 'punkt'),
+    ('corpora/stopwords', 'stopwords'),
+    ('corpora/brown', 'brown'),
+    ('taggers/averaged_perceptron_tagger', 'averaged_perceptron_tagger'),
+]
 
-# Download TextBlob corpora
-try:
-    subprocess.run(['python', '-m', 'textblob.download_corpora'], check=True)
-except Exception as e:
-    print(f"Error downloading TextBlob corpora: {str(e)}")
-    print("Continuing without TextBlob corpora. Some features may not work correctly.")
+
+def _ensure_nltk_packages():
+    for resource_path, package in REQUIRED_NLTK_PACKAGES:
+        try:
+            nltk.data.find(resource_path)
+        except LookupError:
+            try:
+                nltk.download(package, download_dir=str(nltk_data_dir), quiet=True)
+            except Exception as exc:
+                print(f"Error downloading NLTK data package {package}: {str(exc)}")
+                print("Continuing without some NLTK data. Some features may not work correctly.")
+
+
+def _ensure_textblob_corpora():
+    corpus_marker = nltk_data_dir / 'tokenizers' / 'punkt'
+    if corpus_marker.exists():
+        return
+    try:
+        subprocess.run(['python', '-m', 'textblob.download_corpora'], check=True)
+    except Exception as exc:
+        print(f"Error downloading TextBlob corpora: {str(exc)}")
+        print("Continuing without some TextBlob corpora. Some features may not work correctly.")
 
 class RateLimit:
     def __init__(self):
@@ -94,17 +108,25 @@ class RateLimit:
 class SentimentAnalyzer:
     def __init__(self):
         load_dotenv()
+        _ensure_nltk_packages()
+        _ensure_textblob_corpora()
         self.rate_limit = RateLimit()
-        self.gemini_api_key = os.getenv('GEMINI_API_KEY', 'AIzaSyCMEgh5FzRGLHThmzdrBb6SCN5nlNSjpnE')
+        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         # Using free APIs: NewsAPI (free tier) for brand mentions
         self.newsapi_key = os.getenv('NEWSAPI_KEY', '')  # Get from https://newsapi.org (free tier available)
         self.free_sources = ['newsapi', 'web_scrape']  # Fallback to web scraping if no API key
+        self.request_timeout = float(os.getenv('HTTP_REQUEST_TIMEOUT', '10'))
 
-    def analyze_text(self, text):
+    def analyze_text(self, text, increment_usage=True):
         """
         Analyze sentiment of a given text
         Returns: dict with sentiment scores and analysis
         """
+        if increment_usage and not self.rate_limit.increment_read():
+            return {
+                'error': 'API read limit reached for this month',
+                'remaining_reads': self.rate_limit.get_remaining_reads()
+            }
         try:
             blob = TextBlob(text)
             
@@ -140,6 +162,12 @@ class SentimentAnalyzer:
     def generate_sentiment_summary(self, brand_name, sentiment_data):
         """Generate a detailed sentiment summary using Gemini API"""
         try:
+            if not self.gemini_api_key:
+                return {
+                    **sentiment_data,
+                    'ai_summary': 'GEMINI_API_KEY not configured; AI summary skipped.'
+                }
+
             # Prepare the prompt for Gemini
             prompt = f"""
             Analyze the following sentiment data for {brand_name} and provide a detailed summary:
@@ -182,7 +210,8 @@ class SentimentAnalyzer:
             response = requests.post(
                 api_url,
                 headers={"Content-Type": "application/json"},
-                json=request_body
+                json=request_body,
+                timeout=self.request_timeout
             )
             
             if response.status_code == 200:
@@ -212,6 +241,12 @@ class SentimentAnalyzer:
                 'remaining_reads': self.rate_limit.get_remaining_reads()
             }
 
+        if not self.rate_limit.increment_read():
+            return {
+                'error': 'API read limit reached for this month',
+                'remaining_reads': self.rate_limit.get_remaining_reads()
+            }
+
         # Calculate date range
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
@@ -233,7 +268,7 @@ class SentimentAnalyzer:
         # Analyze sentiment for each mention
         results = []
         for post in posts:
-            sentiment = self.analyze_text(post['text'])
+            sentiment = self.analyze_text(post['text'], increment_usage=False)
             results.append({
                 'text': post['text'],
                 'date': post['created_at'],
@@ -319,7 +354,7 @@ class SentimentAnalyzer:
                 'apiKey': self.newsapi_key
             }
             
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, timeout=self.request_timeout)
             if response.status_code == 200:
                 articles = response.json().get('articles', [])
                 posts = []

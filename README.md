@@ -9,9 +9,9 @@ This project analyzes brand sentiment using multiple APIs and natural language p
 - Sentiment visualization and reporting
 
 ## Setup
-1. Install dependencies:
+1. Install dependencies (Python 3.9+):
 ```bash
-pip install -r requirements.txt
+pip install -r api/requirements.txt
 ```
 
 2. Create a `.env` file with your API keys:
@@ -20,6 +20,8 @@ TWITTER_API_KEY=your_twitter_api_key
 TWITTER_API_SECRET=your_twitter_api_secret
 TWITTER_ACCESS_TOKEN=your_twitter_access_token
 TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
+NEWSAPI_KEY=your_newsapi_key            # optional, improves brand coverage
+GEMINI_API_KEY=your_google_generative_ai_key  # optional, enables AI summaries
 ```
 
 3. Run the analyzer:
