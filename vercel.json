@@ -15,7 +15,8 @@
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "api/index.py" },
+    { "src": "/analyze(.*)", "dest": "api/index.py" },
+    { "src": "/usage-stats(.*)", "dest": "api/index.py" },
     { "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
