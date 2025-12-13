@@ -202,7 +202,8 @@ class SentimentAnalyzer:
             """
             
             # Use direct API call to Gemini
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={self.gemini_api_key}"
+            # Updated to use correct model name (gemini-1.5-flash without -latest suffix)
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
             
             request_body = {
                 "contents": [
