@@ -202,8 +202,8 @@ class SentimentAnalyzer:
             """
             
             # Use direct API call to Gemini
-            # Updated to use correct model name (gemini-1.5-flash without -latest suffix)
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
+            # Using v1 endpoint with correct model name
+            api_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
             
             request_body = {
                 "contents": [
@@ -235,10 +235,11 @@ class SentimentAnalyzer:
                     'ai_summary': ai_summary
                 }
             else:
-                print(f"Error from Gemini API: {response.status_code} - {response.text}")
+                error_detail = response.text[:200] if response.text else 'No error details'
+                print(f"Error from Gemini API: {response.status_code} - {error_detail}")
                 return {
                     **sentiment_data,
-                    'ai_summary': f'AI summary generation failed: API returned {response.status_code}'
+                    'ai_summary': f'AI summary generation failed: API returned {response.status_code}. {error_detail}'
                 }
                 
         except Exception as e:
