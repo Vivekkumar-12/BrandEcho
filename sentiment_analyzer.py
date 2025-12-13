@@ -171,6 +171,7 @@ class SentimentAnalyzer:
         """Generate a detailed sentiment summary using Gemini API"""
         try:
             if not self.gemini_api_key:
+                print("WARNING: GEMINI_API_KEY not found in environment variables")
                 return {
                     **sentiment_data,
                     'ai_summary': 'GEMINI_API_KEY not configured; AI summary skipped.'
@@ -215,6 +216,7 @@ class SentimentAnalyzer:
                 ]
             }
             
+            print(f"Calling Gemini API for brand: {brand_name}")
             response = requests.post(
                 api_url,
                 headers={"Content-Type": "application/json"},
@@ -222,6 +224,7 @@ class SentimentAnalyzer:
                 timeout=self.request_timeout
             )
             
+            print(f"Gemini API response status: {response.status_code}")
             if response.status_code == 200:
                 response_data = response.json()
                 ai_summary = response_data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', 'No summary available')
@@ -232,11 +235,17 @@ class SentimentAnalyzer:
                 }
             else:
                 print(f"Error from Gemini API: {response.status_code} - {response.text}")
-                return sentiment_data
+                return {
+                    **sentiment_data,
+                    'ai_summary': f'AI summary generation failed: API returned {response.status_code}'
+                }
                 
         except Exception as e:
             print(f"Error generating AI summary: {str(e)}")
-            return sentiment_data
+            return {
+                **sentiment_data,
+                'ai_summary': f'AI summary generation failed: {str(e)}'
+            }
 
     def analyze_brand_mentions(self, brand_name, days=7):
         """
