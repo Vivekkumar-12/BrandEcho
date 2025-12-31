@@ -14,15 +14,20 @@ This project analyzes brand sentiment using multiple APIs and natural language p
 pip install -r api/requirements.txt
 ```
 
-2. Create a `.env` file with your API keys:
+2. Create a `.env` file with your API keys (see `.env.example`):
 ```
-TWITTER_API_KEY=your_twitter_api_key
-TWITTER_API_SECRET=your_twitter_api_secret
-TWITTER_ACCESS_TOKEN=your_twitter_access_token
-TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
-NEWSAPI_KEY=your_newsapi_key            # optional, improves brand coverage
-GEMINI_API_KEY=your_google_generative_ai_key  # optional, enables AI summaries
+# Reddit (used for data sourcing)
+REDDIT_CLIENT_ID=your_reddit_client_id
+REDDIT_CLIENT_SECRET=your_reddit_client_secret
+REDDIT_USER_AGENT=sentiment_analyzer:v1.0.0 (by /u/your_username)
+REDDIT_USERNAME=your_reddit_username
+REDDIT_PASSWORD=your_reddit_password
+
+# Google Gemini (optional, AI summaries)
+GEMINI_API_KEY=your_gemini_api_key
 ```
+
+Security note: `.env` is now ignored by Git via `.gitignore`. Do not commit secrets. Rotate any previously exposed keys.
 
 3. Run the analyzer:
 ```bash

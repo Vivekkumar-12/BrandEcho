@@ -17,7 +17,7 @@ Your AI summary feature is not working because Vercel doesn't automatically load
 
 4. **Add GEMINI_API_KEY**
    - **Name**: `GEMINI_API_KEY`
-   - **Value**: `AIzaSyDkqEYTKKsKhYCxpv41FE5JfXRvrqlnMmE`
+   - **Value**: `AIzaSyAWznQ-gvcKnhzWUFo2oglr-Mifhfz7tgg`
    - **Environment**: Select all environments (Production, Preview, Development)
    - Click "Save"
 
