@@ -150,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sentimentLabel = result.overall_tone || 'Neutral';
                     const breakdown = result.breakdown || { positive: 0, negative: 0, neutral: 0 };
                     const sampleQuotes = result.sample_quotes || { most_positive: null, most_negative: null };
-                    const aiSummary = result.ai_summary || 'AI summary not available';
                     
                     const lines = [];
                     lines.push(`Brand: ${brand}`);
@@ -172,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         lines.push(`Most negative: "${neg.substring(0, 200)}${neg.length > 200 ? '...' : ''}"`);
                     }
 
-                    lines.push(`AI summary: ${aiSummary || 'Not available'}`);
+
                     lines.push(`Remaining calls this month: ${result.remaining_reads ?? 'N/A'}`);
 
                     addMessage(lines.join('\n'));
