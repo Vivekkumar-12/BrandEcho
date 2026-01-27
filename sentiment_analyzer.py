@@ -239,14 +239,14 @@ class SentimentAnalyzer:
                 print(f"Error from Gemini API: {response.status_code} - {error_detail}")
                 return {
                     **sentiment_data,
-                    'ai_summary': f'AI summary generation failed: API returned {response.status_code}. {error_detail}'
+                    'ai_summary': 'AI summary is currently unavailable.'
                 }
                 
         except Exception as e:
             print(f"Error generating AI summary: {str(e)}")
             return {
                 **sentiment_data,
-                'ai_summary': f'AI summary generation failed: {str(e)}'
+                'ai_summary': 'AI summary is currently unavailable.'
             }
 
     def analyze_brand_mentions(self, brand_name, days=7):
